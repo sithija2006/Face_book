@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Face Recognition App with Facebook Login</title>
+  <title>Face Recognition with Facebook Login</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
   <div class="container mt-5">
-    <h1 class="text-center">Face Recognition App</h1>
-    <p class="text-center">Upload a photo to recognize and fetch Facebook details.</p>
+    <h1 class="text-center">Face Recognition and Social Media Details</h1>
+    <p class="text-center">Upload an image to recognize and fetch Facebook details.</p>
 
     <div class="card p-4 mx-auto" style="max-width: 500px;">
       <form id="uploadForm">
@@ -36,7 +36,7 @@
     // Initialize Facebook SDK
     window.fbAsyncInit = function() {
       FB.init({
-        appId: '966605068658958', // Replace with your App ID
+        appId: '966605068658958', // Facebook App ID
         cookie: true,
         xfbml: true,
         version: 'v12.0'
@@ -63,10 +63,22 @@
         return;
       }
 
-      // Simulate face recognition (Replace with real logic)
-      const isRecognized = true; // Simulated recognition success
+      // Step 1: Upload image to Face++ and get face data
+      const formData = new FormData();
+      formData.append("image_base64", await getBase64(file));
 
-      if (isRecognized) {
+      const facePlusResponse = await fetch("https://api-us.faceplusplus.com/facepp/v3/detect", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Authorization": "Bearer L1sQyrQQLwRJ7c5KAFFwhNdCz7maLpzlHide"
+        }
+      });
+
+      const facePlusData = await facePlusResponse.json();
+
+      if (facePlusData.faces && facePlusData.faces.length > 0) {
+        // Face detected, now login with Facebook
         FB.login(function(response) {
           if (response.authResponse) {
             fetchFacebookData();
@@ -75,11 +87,21 @@
           }
         }, { scope: 'email,public_profile' });
       } else {
-        alert('Face not recognized.');
+        alert('No face detected in the image.');
       }
     });
 
-    // Fetch Facebook user data
+    // Convert image file to base64
+    function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    // Fetch Facebook user data after login
     function fetchFacebookData() {
       FB.api('/me', { fields: 'name,email,picture' }, function(response) {
         if (response && !response.error) {
